@@ -5,7 +5,7 @@ pipeline {
 
         stage('Git Checkout') {
             steps {
-                git branch: 'main', credentialsId: 'GitCreds', url: 'https://github.com/Subhash-Rokkala/hotstar.git'
+               checkout scmGit(branches: [[name: '*/master']], extensions: [], userRemoteConfigs: [[credentialsId: 'GitCreds', url: 'https://github.com/Subhash-Rokkala/shopping-cart.git']])
             }
         }
 
@@ -18,8 +18,8 @@ pipeline {
         stage('Docker Build') {
             steps {
                 sh '''
-                docker build -t subhashrokkala/hotstar:${BUILD_NUMBER} .
-                docker tag subhashrokkala/hotstar:${BUILD_NUMBER} subhashrokkala/hotstar:latest
+                docker build -t subhashrokkala/shopping-cart:${BUILD_NUMBER} .
+                docker tag subhashrokkala/shopping-cart:${BUILD_NUMBER} subhashrokkala/shopping-cart:latest
                 '''
             }
         }
@@ -33,8 +33,8 @@ pipeline {
                 )]) {
                     sh '''
                     echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-                    docker push subhashrokkala/hotstar:${BUILD_NUMBER}
-                    docker push subhashrokkala/hotstar:latest
+                    docker push subhashrokkala/shopping-cart:${BUILD_NUMBER}
+                    docker push subhashrokkala/shopping-cart:latest
                     docker logout
                     '''
                 }
