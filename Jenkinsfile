@@ -1,0 +1,64 @@
+pipeline {
+    agent any
+
+    stages {
+
+        stage('Git Checkout') {
+            steps {
+                git branch: 'main', credentialsId: 'GitCreds', url: 'https://github.com/Subhash-Rokkala/hotstar.git'
+            }
+        }
+
+        stage('Build Process') {
+            steps {
+                sh 'mvn clean install'
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                sh '''
+                docker build -t subhashrokkala/hotstar:${BUILD_NUMBER} .
+                docker tag subhashrokkala/hotstar:${BUILD_NUMBER} subhashrokkala/hotstar:latest
+                '''
+            }
+        }
+
+        stage('Docker Push') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'DockerCred',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh '''
+                    echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                    docker push subhashrokkala/hotstar:${BUILD_NUMBER}
+                    docker push subhashrokkala/hotstar:latest
+                    docker logout
+                    '''
+                }
+            }
+        }
+
+        stage('Test K8s Connection') {
+            steps {
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                    sh 'kubectl get nodes'
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                    sh '''
+                    kubectl apply -f k8s/Deployment.yml
+                    kubectl apply -f k8s/Service.yml
+                    '''
+                }
+            }
+        }
+
+    }
+}
